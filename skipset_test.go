@@ -358,3 +358,26 @@ func TestStringSet(t *testing.T) {
 		}
 	}
 }
+
+func TestAscendGreaterEqual(t *testing.T) {
+	const mapSize = 1 << 10
+
+	m := NewInt64()
+	want := []int64{}
+	for n := int64(1); n <= mapSize; n += 2 {
+		if n >= 100 {
+			want = append(want, n)
+		}
+		m.Add(n)
+	}
+
+	i := 0
+	m.AscendGreaterEqual(100, func(key int64) bool {
+		if want[i] != key {
+			t.Fatalf("expecting key %d, got %d", want[i], key)
+		}
+		i++
+		return true
+	})
+
+}

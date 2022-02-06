@@ -112,6 +112,27 @@ func (s *Int64Set) findNodeAdd(value int64, preds *[maxLevel]*int64Node, succs *
 	return -1
 }
 
+// findNodeAdd takes a value and two maximal-height arrays then searches exactly as in a sequential skip-set.
+// The returned preds and succs always satisfy preds[i] > value >= succs[i].
+func (s *Int64Set) findNode(value int64, preds *[maxLevel]*int64Node, succs *[maxLevel]*int64Node) *int64Node {
+	x := s.header
+	for i := int(atomic.LoadInt64(&s.highestLevel)) - 1; i >= 0; i-- {
+		succ := x.atomicLoadNext(i)
+		for succ != nil && succ.lessthan(value) {
+			x = succ
+			succ = x.atomicLoadNext(i)
+		}
+		preds[i] = x
+		succs[i] = succ
+
+		// Check if the value already in the skip list.
+		if succ != nil && succ.equal(value) {
+			return succ
+		}
+	}
+	return nil
+}
+
 func unlockInt64(preds [maxLevel]*int64Node, highestLevel int) {
 	var prevPred *int64Node
 	for i := highestLevel; i >= 0; i-- {
@@ -281,6 +302,26 @@ func (s *Int64Set) Remove(value int64) bool {
 // If f returns false, range stops the iteration.
 func (s *Int64Set) Range(f func(value int64) bool) {
 	x := s.header.atomicLoadNext(0)
+	for x != nil {
+		if !x.flags.MGet(fullyLinked|marked, fullyLinked) {
+			x = x.atomicLoadNext(0)
+			continue
+		}
+		if !f(x.value) {
+			break
+		}
+		x = x.atomicLoadNext(0)
+	}
+}
+
+// AscendGreaterEqual calls f sequentially for each value present in the skip set greater than or equal to value.
+// If f returns false, range stops the iteration.
+func (s *Int64Set) AscendGreaterEqual(value int64, f func(value int64) bool) {
+	var preds, succs [maxLevel]*int64Node
+	x := s.findNode(value, &preds, &succs)
+	if x == nil && succs[0].value > value {
+		x = succs[0]
+	}
 	for x != nil {
 		if !x.flags.MGet(fullyLinked|marked, fullyLinked) {
 			x = x.atomicLoadNext(0)
