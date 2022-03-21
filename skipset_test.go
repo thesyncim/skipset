@@ -13,7 +13,9 @@ import (
 )
 
 func Example() {
-	l := NewInt()
+	l := NewSkipSet(func(a, b int) bool {
+		return a < b
+	})
 
 	for _, v := range []int{10, 12, 15} {
 		if l.Add(v) {
@@ -36,7 +38,9 @@ func Example() {
 
 func TestIntSet(t *testing.T) {
 	// Correctness.
-	l := NewInt()
+	l := NewSkipSet(func(a, b int) bool {
+		return a < b
+	})
 	if l.length != 0 {
 		t.Fatal("invalid length")
 	}
@@ -190,8 +194,12 @@ func TestIntSet(t *testing.T) {
 
 	// Correctness 2.
 	var (
-		x     = NewInt()
-		y     = NewInt()
+		x = NewSkipSet(func(a, b int) bool {
+			return a < b
+		})
+		y = NewSkipSet(func(a, b int) bool {
+			return a < b
+		})
 		count = 10000
 	)
 
@@ -219,7 +227,9 @@ func TestIntSet(t *testing.T) {
 	}
 
 	// Concurrent Add and Remove in small zone.
-	x = NewInt()
+	x = NewSkipSet(func(a, b int) bool {
+		return a < b
+	})
 	var (
 		addcount    uint64 = 0
 		removecount uint64 = 0
@@ -260,7 +270,9 @@ func TestIntSet(t *testing.T) {
 	})
 
 	// Correctness 3.
-	s1 := NewUint64()
+	s1 := NewSkipSet(func(a, b uint64) bool {
+		return a < b
+	})
 	var s2 sync.Map
 	var counter uint64
 	for i := 0; i <= 10000; i++ {
@@ -296,7 +308,9 @@ func TestIntSet(t *testing.T) {
 }
 
 func TestIntSetDesc(t *testing.T) {
-	s := NewIntDesc()
+	s := NewSkipSet(func(a, b int) bool {
+		return a > b
+	})
 	nums := []int{-1, 0, 5, 12}
 	for _, v := range nums {
 		s.Add(v)
@@ -312,7 +326,9 @@ func TestIntSetDesc(t *testing.T) {
 }
 
 func TestStringSet(t *testing.T) {
-	x := NewString()
+	x := NewSkipSet(func(a, b string) bool {
+		return a < b
+	})
 	if !x.Add("111") || x.Len() != 1 {
 		t.Fatal("invalid")
 	}
@@ -362,7 +378,9 @@ func TestStringSet(t *testing.T) {
 func TestAscendGreaterEqual(t *testing.T) {
 	const mapSize = 1 << 10
 
-	m := NewInt64()
+	m := NewSkipSet(func(a, b int64) bool {
+		return a < b
+	})
 	want := []int64{}
 	for n := int64(1); n <= mapSize; n += 2 {
 		if n >= 100 {
@@ -380,4 +398,12 @@ func TestAscendGreaterEqual(t *testing.T) {
 		return true
 	})
 
+	if len(want) != i {
+		t.Fatalf("expecting ranged entries %d, got %d", len(want), i)
+	}
+
+	m.AscendGreaterEqual(int64(mapSize+1), func(key int64) bool {
+		t.Fatalf("unexpected call")
+		return true
+	})
 }

@@ -11,36 +11,36 @@ const (
 )
 
 type optionalArray struct {
-	base  [op1]unsafe.Pointer
-	extra *([op2]unsafe.Pointer)
+	Base  [op1]unsafe.Pointer
+	Extra *[op2]unsafe.Pointer
 }
 
-func (a *optionalArray) load(i int) unsafe.Pointer {
+func (a *optionalArray) Load(i int) unsafe.Pointer {
 	if i < op1 {
-		return a.base[i]
+		return a.Base[i]
 	}
-	return a.extra[i-op1]
+	return a.Extra[i-op1]
 }
 
-func (a *optionalArray) store(i int, p unsafe.Pointer) {
+func (a *optionalArray) Store(i int, p unsafe.Pointer) {
 	if i < op1 {
-		a.base[i] = p
+		a.Base[i] = p
 		return
 	}
-	a.extra[i-op1] = p
+	a.Extra[i-op1] = p
 }
 
-func (a *optionalArray) atomicLoad(i int) unsafe.Pointer {
+func (a *optionalArray) AtomicLoad(i int) unsafe.Pointer {
 	if i < op1 {
-		return atomic.LoadPointer(&a.base[i])
+		return atomic.LoadPointer(&a.Base[i])
 	}
-	return atomic.LoadPointer(&a.extra[i-op1])
+	return atomic.LoadPointer(&a.Extra[i-op1])
 }
 
-func (a *optionalArray) atomicStore(i int, p unsafe.Pointer) {
+func (a *optionalArray) AtomicStore(i int, p unsafe.Pointer) {
 	if i < op1 {
-		atomic.StorePointer(&a.base[i], p)
+		atomic.StorePointer(&a.Base[i], p)
 		return
 	}
-	atomic.StorePointer(&a.extra[i-op1], p)
+	atomic.StorePointer(&a.Extra[i-op1], p)
 }
