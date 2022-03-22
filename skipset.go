@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-// SkipSet represents a set based on skip list in ascending order.
+// SkipSet represents a generic set based on skip list
 type SkipSet[T any] struct {
 	header       *node[T]
 	length       int64
@@ -18,7 +18,7 @@ func (s *SkipSet[T]) equal(a, b T) bool {
 	return !s.less(a, b) && !s.less(b, a)
 }
 
-// New return an empty Item skipset set in ascending order.
+// New return an empty Item the set in ascending order.
 func New[T any](lessFunc func(a, b T) bool) *SkipSet[T] {
 	var t T
 	h := newNode[T](t, maxLevel)
@@ -104,10 +104,10 @@ func unlockNode[T any](preds [maxLevel]*node[T], highestLevel int) {
 	}
 }
 
-// Add add the value into skipset set, return true if this process insert the value into skipset set,
+// Add adds the value into the set, return true if this process insert the value into the set,
 // return false if this process can't insert this value, because another process has insert the same value.
 //
-// If the value is in the skipset set but not fully linked, this process will wait until it is.
+// If the value is in the the set but not fully linked, this process will wait until it is.
 func (s *SkipSet[T]) Add(value T) bool {
 	level := s.randomlevel()
 	var preds, succs [maxLevel]*node[T]
@@ -178,7 +178,7 @@ func (s *SkipSet[T]) randomlevel() int {
 	return level
 }
 
-// Contains check if the value is in the skipset set.
+// Contains check if the value is in the the set.
 func (s *SkipSet[T]) Contains(value T) bool {
 	x := s.header
 	for i := int(atomic.LoadInt64(&s.highestLevel)) - 1; i >= 0; i-- {
@@ -196,7 +196,7 @@ func (s *SkipSet[T]) Contains(value T) bool {
 	return false
 }
 
-// Remove a node from the skipset set.
+// Remove a node from the the set.
 func (s *SkipSet[T]) Remove(value T) bool {
 	var (
 		nodeToRemove *node[T]
@@ -259,7 +259,7 @@ func (s *SkipSet[T]) Remove(value T) bool {
 	}
 }
 
-// Range calls f sequentially for each value present in the skipset set.
+// Range calls f sequentially for each value present in the the set.
 // If f returns false, range stops the iteration.
 func (s *SkipSet[T]) Range(f func(value T) bool) {
 	x := s.header.atomicLoadNext(0)
@@ -275,7 +275,7 @@ func (s *SkipSet[T]) Range(f func(value T) bool) {
 	}
 }
 
-// AscendGreaterEqual calls f sequentially for each value present in the skipset set greater than or equal to value.
+// AscendGreaterEqual calls f sequentially for each value present in the the set greater than or equal to value.
 // If f returns false, range stops the iteration.
 func (s *SkipSet[T]) AscendGreaterEqual(value T, f func(value T) bool) {
 	var preds, succs [maxLevel]*node[T]
@@ -295,7 +295,7 @@ func (s *SkipSet[T]) AscendGreaterEqual(value T, f func(value T) bool) {
 	}
 }
 
-// Len return the length of this skipset set.
+// Len return the length of this the set.
 func (s *SkipSet[T]) Len() int {
 	return int(atomic.LoadInt64(&s.length))
 }
