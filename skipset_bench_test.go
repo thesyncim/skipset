@@ -54,6 +54,7 @@ func benchAdd(b *testing.B, benchTasks []benchInt64Task) {
 	for _, v := range benchTasks {
 		b.Run("Add/"+v.name, func(b *testing.B) {
 			s := v.New()
+			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
@@ -74,6 +75,7 @@ func benchContains50Hits(b *testing.B, benchTasks []benchInt64Task) {
 					s.Add(int64(i))
 				}
 			}
+			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
@@ -88,6 +90,7 @@ func bench30Add70Contains(b *testing.B, benchTasks []benchInt64Task) {
 	for _, v := range benchTasks {
 		b.Run("30Add70Contains/"+v.name, func(b *testing.B) {
 			s := v.New()
+			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
@@ -107,6 +110,7 @@ func bench1Remove9Add90Contains(b *testing.B, benchTasks []benchInt64Task) {
 	for _, v := range benchTasks {
 		b.Run("1Remove9Add90Contains/"+v.name, func(b *testing.B) {
 			s := v.New()
+			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
@@ -128,6 +132,7 @@ func bench1Range9Remove90Add900Contains(b *testing.B, benchTasks []benchInt64Tas
 	for _, v := range benchTasks {
 		b.Run("1Range9Remove90Add900Contains/"+v.name, func(b *testing.B) {
 			s := v.New()
+			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
@@ -152,8 +157,8 @@ func bench1Range9Remove90Add900Contains(b *testing.B, benchTasks []benchInt64Tas
 func benchStringAdd(b *testing.B, benchTasks []benchStringTask) {
 	for _, v := range benchTasks {
 		b.Run("Add/"+v.name, func(b *testing.B) {
-			b.ReportAllocs()
 			s := v.New()
+			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
@@ -167,7 +172,6 @@ func benchStringAdd(b *testing.B, benchTasks []benchStringTask) {
 func benchStringContains50Hits(b *testing.B, benchTasks []benchStringTask) {
 	for _, v := range benchTasks {
 		b.Run("Contains50Hits/"+v.name, func(b *testing.B) {
-			b.ReportAllocs()
 			const rate = 2
 			s := v.New()
 			for i := 0; i < initsize*rate; i++ {
@@ -175,6 +179,7 @@ func benchStringContains50Hits(b *testing.B, benchTasks []benchStringTask) {
 					s.Add(strconv.Itoa(int(fastrand.Uint32n(randN))))
 				}
 			}
+			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
@@ -188,8 +193,8 @@ func benchStringContains50Hits(b *testing.B, benchTasks []benchStringTask) {
 func benchString30Add70Contains(b *testing.B, benchTasks []benchStringTask) {
 	for _, v := range benchTasks {
 		b.Run("30Add70Contains/"+v.name, func(b *testing.B) {
-			b.ReportAllocs()
 			s := v.New()
+			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
@@ -208,8 +213,8 @@ func benchString30Add70Contains(b *testing.B, benchTasks []benchStringTask) {
 func benchString1Remove9Add90Contains(b *testing.B, benchTasks []benchStringTask) {
 	for _, v := range benchTasks {
 		b.Run("1Remove9Add90Contains/"+v.name, func(b *testing.B) {
-			b.ReportAllocs()
 			s := v.New()
+			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
@@ -230,8 +235,8 @@ func benchString1Remove9Add90Contains(b *testing.B, benchTasks []benchStringTask
 func benchString1Range9Remove90Add900Contains(b *testing.B, benchTasks []benchStringTask) {
 	for _, v := range benchTasks {
 		b.Run("1Range9Remove90Add900Contains/"+v.name, func(b *testing.B) {
-			b.ReportAllocs()
 			s := v.New()
+			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
