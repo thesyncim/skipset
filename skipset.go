@@ -18,8 +18,8 @@ func (s *SkipSet[T]) equal(a, b T) bool {
 	return !s.less(a, b) && !s.less(b, a)
 }
 
-// NewSkipSet return an empty Item skipset set in ascending order.
-func NewSkipSet[T any](lessFunc func(a, b T) bool) *SkipSet[T] {
+// New return an empty Item skipset set in ascending order.
+func New[T any](lessFunc func(a, b T) bool) *SkipSet[T] {
 	var t T
 	h := newNode[T](t, maxLevel)
 	h.flags.SetTrue(fullyLinked)

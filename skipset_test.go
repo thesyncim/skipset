@@ -13,7 +13,7 @@ import (
 )
 
 func Example() {
-	l := NewSkipSet(func(a, b int) bool {
+	l := New(func(a, b int) bool {
 		return a < b
 	})
 
@@ -38,7 +38,7 @@ func Example() {
 
 func TestIntSet(t *testing.T) {
 	// Correctness.
-	l := NewSkipSet(func(a, b int) bool {
+	l := New(func(a, b int) bool {
 		return a < b
 	})
 	if l.length != 0 {
@@ -194,10 +194,10 @@ func TestIntSet(t *testing.T) {
 
 	// Correctness 2.
 	var (
-		x = NewSkipSet(func(a, b int) bool {
+		x = New(func(a, b int) bool {
 			return a < b
 		})
-		y = NewSkipSet(func(a, b int) bool {
+		y = New(func(a, b int) bool {
 			return a < b
 		})
 		count = 10000
@@ -227,7 +227,7 @@ func TestIntSet(t *testing.T) {
 	}
 
 	// Concurrent Add and Remove in small zone.
-	x = NewSkipSet(func(a, b int) bool {
+	x = New(func(a, b int) bool {
 		return a < b
 	})
 	var (
@@ -270,7 +270,7 @@ func TestIntSet(t *testing.T) {
 	})
 
 	// Correctness 3.
-	s1 := NewSkipSet(func(a, b uint64) bool {
+	s1 := New(func(a, b uint64) bool {
 		return a < b
 	})
 	var s2 sync.Map
@@ -308,7 +308,7 @@ func TestIntSet(t *testing.T) {
 }
 
 func TestIntSetDesc(t *testing.T) {
-	s := NewSkipSet(func(a, b int) bool {
+	s := New(func(a, b int) bool {
 		return a > b
 	})
 	nums := []int{-1, 0, 5, 12}
@@ -326,7 +326,7 @@ func TestIntSetDesc(t *testing.T) {
 }
 
 func TestStringSet(t *testing.T) {
-	x := NewSkipSet(func(a, b string) bool {
+	x := New(func(a, b string) bool {
 		return a < b
 	})
 	if !x.Add("111") || x.Len() != 1 {
@@ -378,7 +378,7 @@ func TestStringSet(t *testing.T) {
 func TestAscendGreaterEqual(t *testing.T) {
 	const mapSize = 1 << 10
 
-	m := NewSkipSet(func(a, b int64) bool {
+	m := New(func(a, b int64) bool {
 		return a < b
 	})
 	want := []int64{}

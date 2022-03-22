@@ -17,7 +17,7 @@ const (
 func BenchmarkInt64(b *testing.B) {
 	all := []benchInt64Task{{
 		name: "skipset", New: func() int64Set {
-			return NewSkipSet(func(a, b int64) bool {
+			return New(func(a, b int64) bool {
 				return a < b
 			})
 		}}}
@@ -35,7 +35,7 @@ func BenchmarkInt64(b *testing.B) {
 func BenchmarkString(b *testing.B) {
 	all := []benchStringTask{{
 		name: "skipset", New: func() stringSet {
-			return NewSkipSet(func(a, b string) bool {
+			return New(func(a, b string) bool {
 				return a < b
 			})
 		}}}
