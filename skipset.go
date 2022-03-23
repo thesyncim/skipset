@@ -8,10 +8,10 @@ import (
 
 // SkipSet represents a generic set based on skip list
 type SkipSet[T any] struct {
+	less         func(a, b T) bool
 	header       *node[T]
 	length       int64
-	highestLevel int64 // highest level for now
-	less         func(a, b T) bool
+	highestLevel int64
 }
 
 func (s *SkipSet[T]) equal(a, b T) bool {
@@ -169,13 +169,12 @@ func (s *SkipSet[T]) randomlevel() int {
 	for {
 		hl := atomic.LoadInt64(&s.highestLevel)
 		if int64(level) <= hl {
-			break
+			return level
 		}
 		if atomic.CompareAndSwapInt64(&s.highestLevel, hl, int64(level)) {
-			break
+			return level
 		}
 	}
-	return level
 }
 
 // Contains check if the value is in the the set.
@@ -333,4 +332,11 @@ func (n *node[T]) atomicLoadNext(i int) *node[T] {
 
 func (n *node[T]) atomicStoreNext(i int, node *node[T]) {
 	n.next.AtomicStore(i, unsafe.Pointer(node))
+}
+
+func test() {
+	s := New(func(a, b int64) bool {
+		return a < b
+	})
+	s.Len()
 }

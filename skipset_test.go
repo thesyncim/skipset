@@ -8,8 +8,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
-
-	"github.com/zhangyunhao116/fastrand"
 )
 
 func Example() {
@@ -110,7 +108,7 @@ func TestIntSet(t *testing.T) {
 		testArray[i] = int(i)
 	}
 	for i := len(testArray) - 1; i > 0; i-- { // Fisher–Yates shuffle
-		j := fastrand.Uint32n(uint32(i + 1))
+		j := fastrandUint32n(uint32(i + 1))
 		testArray[i], testArray[j] = testArray[j], testArray[i]
 	}
 
@@ -170,13 +168,13 @@ func TestIntSet(t *testing.T) {
 	for i := 0; i < 1<<16; i++ {
 		wg.Add(1)
 		go func() {
-			r := fastrand.Uint32n(num)
+			r := fastrandUint32n(num)
 			if r < 333 {
-				l.Add(int(fastrand.Uint32n(smallRndN)) + 1)
+				l.Add(int(fastrandUint32n(smallRndN)) + 1)
 			} else if r < 666 {
-				l.Contains(int(fastrand.Uint32n(smallRndN)) + 1)
+				l.Contains(int(fastrandUint32n(smallRndN)) + 1)
 			} else if r != 999 {
-				l.Remove(int(fastrand.Uint32n(smallRndN)) + 1)
+				l.Remove(int(fastrandUint32n(smallRndN)) + 1)
 			} else {
 				var pre int
 				l.Range(func(score int) bool {
@@ -239,12 +237,12 @@ func TestIntSet(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			for i := 0; i < 1000; i++ {
-				if fastrand.Uint32n(2) == 0 {
-					if x.Remove(int(fastrand.Uint32n(10))) {
+				if fastrandUint32n(2) == 0 {
+					if x.Remove(int(fastrandUint32n(10))) {
 						atomic.AddUint64(&removecount, 1)
 					}
 				} else {
-					if x.Add(int(fastrand.Uint32n(10))) {
+					if x.Add(int(fastrandUint32n(10))) {
 						atomic.AddUint64(&addcount, 1)
 					}
 				}
@@ -278,8 +276,8 @@ func TestIntSet(t *testing.T) {
 	for i := 0; i <= 10000; i++ {
 		wg.Add(1)
 		go func() {
-			if fastrand.Uint32n(2) == 0 {
-				r := fastrand.Uint32()
+			if fastrandUint32n(2) == 0 {
+				r := fastrandUint32()
 				s1.Add(uint64(r))
 				s2.Store(uint64(r), nil)
 			} else {
