@@ -207,10 +207,11 @@ func (s *SkipSet[T]) Get(value T) (found bool, v T) {
 
 		// Check if the value already in the skip list.
 		if nex != nil && s.equal(nex.value, value) {
-			linked:= nex.flags.MGet(fullyLinked|marked, fullyLinked)
+			linked := nex.flags.MGet(fullyLinked|marked, fullyLinked)
 			if linked {
 				return true, nex.value
 			}
+			break
 		}
 	}
 	var zero T
