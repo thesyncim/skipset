@@ -195,6 +195,28 @@ func (s *SkipSet[T]) Contains(value T) bool {
 	return false
 }
 
+// Get returns the value in the set
+func (s *SkipSet[T]) Get(value T) (found bool, v T) {
+	x := s.header
+	for i := int(atomic.LoadInt64(&s.highestLevel)) - 1; i >= 0; i-- {
+		nex := x.atomicLoadNext(i)
+		for nex != nil && s.less(nex.value, value) {
+			x = nex
+			nex = x.atomicLoadNext(i)
+		}
+
+		// Check if the value already in the skip list.
+		if nex != nil && s.equal(nex.value, value) {
+			linked:= nex.flags.MGet(fullyLinked|marked, fullyLinked)
+			if linked {
+				return true, nex.value
+			}
+		}
+	}
+	var zero T
+	return false, zero
+}
+
 // Remove a node from the the set.
 func (s *SkipSet[T]) Remove(value T) bool {
 	var (

@@ -405,3 +405,24 @@ func TestAscendGreaterEqual(t *testing.T) {
 		return true
 	})
 }
+
+func TestSkipSet_Get(t *testing.T) {
+	type typ struct {
+		Key, value string
+	}
+
+	s := New(func(a, b typ) bool {
+		return a.Key < b.Key
+	})
+
+	t0 := typ{Key: "1", value: "1"}
+	s.Add(t0)
+
+	ok, v := s.Get(typ{Key: "1"})
+	if !ok {
+		t.Fatalf("expecting element")
+	}
+	if v != t0 {
+		t.Fatalf("element doesnt match")
+	}
+}
