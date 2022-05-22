@@ -50,13 +50,13 @@ func BenchmarkString(b *testing.B) {
 
 func benchAdd(b *testing.B, benchTasks []benchInt64Task) {
 	for _, v := range benchTasks {
-		b.Run("Add/"+v.name, func(b *testing.B) {
+		b.Run("Store/"+v.name, func(b *testing.B) {
 			s := v.New()
 			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					s.Add(int64(fastrandUint32n(randN)))
+					s.Store(int64(fastrandUint32n(randN)))
 				}
 			})
 		})
@@ -70,7 +70,7 @@ func benchContains50Hits(b *testing.B, benchTasks []benchInt64Task) {
 			s := v.New()
 			for i := 0; i < initsize*rate; i++ {
 				if fastrandUint32n(rate) == 0 {
-					s.Add(int64(i))
+					s.Store(int64(i))
 				}
 			}
 			b.ReportAllocs()
@@ -94,7 +94,7 @@ func bench30Add70Contains(b *testing.B, benchTasks []benchInt64Task) {
 				for pb.Next() {
 					u := fastrandUint32n(10)
 					if u < 3 {
-						s.Add(int64(fastrandUint32n(randN)))
+						s.Store(int64(fastrandUint32n(randN)))
 					} else {
 						s.Contains(int64(fastrandUint32n(randN)))
 					}
@@ -114,7 +114,7 @@ func bench1Remove9Add90Contains(b *testing.B, benchTasks []benchInt64Task) {
 				for pb.Next() {
 					u := fastrandUint32n(100)
 					if u < 9 {
-						s.Add(int64(fastrandUint32n(randN)))
+						s.Store(int64(fastrandUint32n(randN)))
 					} else if u == 10 {
 						s.Remove(int64(fastrandUint32n(randN)))
 					} else {
@@ -142,7 +142,7 @@ func bench1Range9Remove90Add900Contains(b *testing.B, benchTasks []benchInt64Tas
 					} else if u > 10 && u < 20 {
 						s.Remove(int64(fastrandUint32n(randN)))
 					} else if u >= 100 && u < 190 {
-						s.Add(int64(fastrandUint32n(randN)))
+						s.Store(int64(fastrandUint32n(randN)))
 					} else {
 						s.Contains(int64(fastrandUint32n(randN)))
 					}
@@ -154,13 +154,13 @@ func bench1Range9Remove90Add900Contains(b *testing.B, benchTasks []benchInt64Tas
 
 func benchStringAdd(b *testing.B, benchTasks []benchStringTask) {
 	for _, v := range benchTasks {
-		b.Run("Add/"+v.name, func(b *testing.B) {
+		b.Run("Store/"+v.name, func(b *testing.B) {
 			s := v.New()
 			b.ReportAllocs()
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					s.Add(strconv.Itoa(int(fastrandUint32n(randN))))
+					s.Store(strconv.Itoa(int(fastrandUint32n(randN))))
 				}
 			})
 		})
@@ -174,7 +174,7 @@ func benchStringContains50Hits(b *testing.B, benchTasks []benchStringTask) {
 			s := v.New()
 			for i := 0; i < initsize*rate; i++ {
 				if fastrandUint32n(rate) == 0 {
-					s.Add(strconv.Itoa(int(fastrandUint32n(randN))))
+					s.Store(strconv.Itoa(int(fastrandUint32n(randN))))
 				}
 			}
 			b.ReportAllocs()
@@ -198,7 +198,7 @@ func benchString30Add70Contains(b *testing.B, benchTasks []benchStringTask) {
 				for pb.Next() {
 					u := fastrandUint32n(10)
 					if u < 3 {
-						s.Add(strconv.Itoa(int(fastrandUint32n(randN))))
+						s.Store(strconv.Itoa(int(fastrandUint32n(randN))))
 					} else {
 						s.Contains(strconv.Itoa(int(fastrandUint32n(randN))))
 					}
@@ -218,7 +218,7 @@ func benchString1Remove9Add90Contains(b *testing.B, benchTasks []benchStringTask
 				for pb.Next() {
 					u := fastrandUint32n(100)
 					if u < 9 {
-						s.Add(strconv.Itoa(int(fastrandUint32n(randN))))
+						s.Store(strconv.Itoa(int(fastrandUint32n(randN))))
 					} else if u == 10 {
 						s.Remove(strconv.Itoa(int(fastrandUint32n(randN))))
 					} else {
@@ -246,7 +246,7 @@ func benchString1Range9Remove90Add900Contains(b *testing.B, benchTasks []benchSt
 					} else if u > 10 && u < 20 {
 						s.Remove(strconv.Itoa(int(fastrandUint32n(randN))))
 					} else if u >= 100 && u < 190 {
-						s.Add(strconv.Itoa(int(fastrandUint32n(randN))))
+						s.Store(strconv.Itoa(int(fastrandUint32n(randN))))
 					} else {
 						s.Contains(strconv.Itoa(int(fastrandUint32n(randN))))
 					}
@@ -262,7 +262,7 @@ type benchInt64Task struct {
 }
 
 type int64Set interface {
-	Add(x int64) bool
+	Store(x int64) bool
 	Contains(x int64) bool
 	Remove(x int64) bool
 	Range(f func(value int64) bool)
@@ -272,7 +272,7 @@ type int64SyncMap struct {
 	data sync.Map
 }
 
-func (m *int64SyncMap) Add(x int64) bool {
+func (m *int64SyncMap) Store(x int64) bool {
 	m.data.Store(x, struct{}{})
 	return true
 }
@@ -299,7 +299,7 @@ type benchStringTask struct {
 }
 
 type stringSet interface {
-	Add(x string) bool
+	Store(x string) bool
 	Contains(x string) bool
 	Remove(x string) bool
 	Range(f func(value string) bool)
@@ -309,7 +309,7 @@ type stringSyncMap struct {
 	data sync.Map
 }
 
-func (m *stringSyncMap) Add(x string) bool {
+func (m *stringSyncMap) Store(x string) bool {
 	m.data.Store(x, struct{}{})
 	return true
 }

@@ -1,6 +1,7 @@
 package skipset
 
 import (
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -104,11 +105,11 @@ func unlockNode[T any](preds [maxLevel]*node[T], highestLevel int) {
 	}
 }
 
-// Add adds the value into the set, return true if this process insert the value into the set,
-// return false if this process can't insert this value, because another process has insert the same value.
+// Store adds the value into the set, return true if this process insert the value into the set,
+// return false if this process can't insert this value, because another process has inserted the same value.
 //
-// If the value is in the the set but not fully linked, this process will wait until it is.
-func (s *SkipSet[T]) Add(value T) bool {
+// If the value is in the set but not fully linked, this process will wait until it is.
+func (s *SkipSet[T]) Store(value T) bool {
 	level := s.randomlevel()
 	var preds, succs [maxLevel]*node[T]
 	for {
@@ -125,7 +126,7 @@ func (s *SkipSet[T]) Add(value T) bool {
 			// we need to add this node in next loop.
 			continue
 		}
-		// Add this node into skip list.
+		// Store this node into skip list.
 		var (
 			highestLocked        = -1 // the highest level being locked by this process
 			valid                = true
@@ -195,8 +196,8 @@ func (s *SkipSet[T]) Contains(value T) bool {
 	return false
 }
 
-// Get returns the value in the set
-func (s *SkipSet[T]) Get(value T) (found bool, v T) {
+// Load returns the value in the set
+func (s *SkipSet[T]) Load(value T) (found bool, v T) {
 	x := s.header
 	for i := int(atomic.LoadInt64(&s.highestLevel)) - 1; i >= 0; i-- {
 		nex := x.atomicLoadNext(i)
@@ -281,7 +282,7 @@ func (s *SkipSet[T]) Remove(value T) bool {
 	}
 }
 
-// Range calls f sequentially for each value present in the the set.
+// Range calls f sequentially for each value present in the  set.
 // If f returns false, range stops the iteration.
 func (s *SkipSet[T]) Range(f func(value T) bool) {
 	x := s.header.atomicLoadNext(0)
@@ -314,6 +315,68 @@ func (s *SkipSet[T]) AscendGreaterEqual(value T, f func(value T) bool) {
 			break
 		}
 		x = x.atomicLoadNext(0)
+	}
+}
+
+// LoadOrStore returns the existing value for the key if present.
+// Otherwise, it stores and returns the given value.
+// The loaded result is true if the value was loaded, false if stored.
+func (s SkipSet[T]) LoadOrStore(value T, newValue func() T) (actual T, loaded bool) {
+	level := s.randomlevel()
+	var preds, succs [maxLevel]*node[T]
+	for {
+		lFound := s.findNodeAdd(value, &preds, &succs)
+		if lFound != -1 { // indicating the value is already in the skip-list
+			nodeFound := succs[lFound]
+			if !nodeFound.flags.Get(marked) {
+				for !nodeFound.flags.Get(fullyLinked) {
+					// The node is not yet fully linked, just waits until it is.
+					runtime.Gosched()
+				}
+				return nodeFound.value, true
+			}
+			// If the node is marked, represents some other thread is in the process of deleting this node,
+			// we need to add this node in next loop.
+			continue
+		}
+
+		// Store this node into skip list.
+		var (
+			highestLocked        = -1 // the highest level being locked by this process
+			valid                = true
+			pred, succ, prevPred *node[T]
+		)
+		for layer := 0; valid && layer < level; layer++ {
+			pred = preds[layer]   // target node's previous node
+			succ = succs[layer]   // target node's next node
+			if pred != prevPred { // the node in this layer could be locked by previous loop
+				pred.mu.Lock()
+				highestLocked = layer
+				prevPred = pred
+			}
+			// valid check if there is another node has inserted into the skip list in this layer during this process.
+			// It is valid if:
+			// 1. The previous node and next node both are not marked.
+			// 2. The previous node's next node is succ in this layer.
+			valid = !pred.flags.Get(marked) && (succ == nil || !succ.flags.Get(marked)) && pred.loadNext(layer) == succ
+		}
+		if !valid {
+			unlockNode(preds, highestLocked)
+			continue
+		}
+
+		// we are now at the safe-point, we can safely insert this node into the skip list.
+		value = newValue()
+
+		nn := newNode(value, level)
+		for layer := 0; layer < level; layer++ {
+			nn.storeNext(layer, succs[layer])
+			preds[layer].atomicStoreNext(layer, nn)
+		}
+		nn.flags.SetTrue(fullyLinked)
+		unlockNode(preds, highestLocked)
+		atomic.AddInt64(&s.length, 1)
+		return value, false
 	}
 }
 

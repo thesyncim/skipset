@@ -16,7 +16,7 @@ func Example() {
 	})
 
 	for _, v := range []int{10, 12, 15} {
-		if l.Add(v) {
+		if l.Store(v) {
 			fmt.Println("skipset add", v)
 		}
 	}
@@ -46,7 +46,7 @@ func TestIntSet(t *testing.T) {
 		t.Fatal("invalid contains")
 	}
 
-	if !l.Add(0) || l.length != 1 {
+	if !l.Store(0) || l.length != 1 {
 		t.Fatal("invalid add")
 	}
 	if !l.Contains(0) {
@@ -56,13 +56,13 @@ func TestIntSet(t *testing.T) {
 		t.Fatal("invalid remove")
 	}
 
-	if !l.Add(20) || l.length != 1 {
+	if !l.Store(20) || l.length != 1 {
 		t.Fatal("invalid add")
 	}
-	if !l.Add(22) || l.length != 2 {
+	if !l.Store(22) || l.length != 2 {
 		t.Fatal("invalid add")
 	}
-	if !l.Add(21) || l.length != 3 {
+	if !l.Store(21) || l.length != 3 {
 		t.Fatal("invalid add")
 	}
 
@@ -118,7 +118,7 @@ func TestIntSet(t *testing.T) {
 		i := i
 		wg.Add(1)
 		go func() {
-			l.Add(testArray[i])
+			l.Store(testArray[i])
 			wg.Done()
 		}()
 	}
@@ -170,7 +170,7 @@ func TestIntSet(t *testing.T) {
 		go func() {
 			r := fastrandUint32n(num)
 			if r < 333 {
-				l.Add(int(fastrandUint32n(smallRndN)) + 1)
+				l.Store(int(fastrandUint32n(smallRndN)) + 1)
 			} else if r < 666 {
 				l.Contains(int(fastrandUint32n(smallRndN)) + 1)
 			} else if r != 999 {
@@ -202,7 +202,7 @@ func TestIntSet(t *testing.T) {
 	)
 
 	for i := 0; i < count; i++ {
-		x.Add(i)
+		x.Store(i)
 	}
 
 	for i := 0; i < 16; i++ {
@@ -210,7 +210,7 @@ func TestIntSet(t *testing.T) {
 		go func() {
 			x.Range(func(score int) bool {
 				if x.Remove(score) {
-					if !y.Add(score) {
+					if !y.Store(score) {
 						panic("invalid add")
 					}
 				}
@@ -224,7 +224,7 @@ func TestIntSet(t *testing.T) {
 		t.Fatal("invalid length")
 	}
 
-	// Concurrent Add and Remove in small zone.
+	// Concurrent Store and Remove in small zone.
 	x = New(func(a, b int) bool {
 		return a < b
 	})
@@ -242,7 +242,7 @@ func TestIntSet(t *testing.T) {
 						atomic.AddUint64(&removecount, 1)
 					}
 				} else {
-					if x.Add(int(fastrandUint32n(10))) {
+					if x.Store(int(fastrandUint32n(10))) {
 						atomic.AddUint64(&addcount, 1)
 					}
 				}
@@ -278,11 +278,11 @@ func TestIntSet(t *testing.T) {
 		go func() {
 			if fastrandUint32n(2) == 0 {
 				r := fastrandUint32()
-				s1.Add(uint64(r))
+				s1.Store(uint64(r))
 				s2.Store(uint64(r), nil)
 			} else {
 				r := atomic.AddUint64(&counter, 1)
-				s1.Add(uint64(r))
+				s1.Store(uint64(r))
 				s2.Store(uint64(r), nil)
 			}
 			wg.Done()
@@ -311,7 +311,7 @@ func TestIntSetDesc(t *testing.T) {
 	})
 	nums := []int{-1, 0, 5, 12}
 	for _, v := range nums {
-		s.Add(v)
+		s.Store(v)
 	}
 	i := len(nums) - 1
 	s.Range(func(value int) bool {
@@ -327,13 +327,13 @@ func TestStringSet(t *testing.T) {
 	x := New(func(a, b string) bool {
 		return a < b
 	})
-	if !x.Add("111") || x.Len() != 1 {
+	if !x.Store("111") || x.Len() != 1 {
 		t.Fatal("invalid")
 	}
-	if !x.Add("222") || x.Len() != 2 {
+	if !x.Store("222") || x.Len() != 2 {
 		t.Fatal("invalid")
 	}
-	if x.Add("111") || x.Len() != 2 {
+	if x.Store("111") || x.Len() != 2 {
 		t.Fatal("invalid")
 	}
 	if !x.Contains("111") || !x.Contains("222") {
@@ -351,7 +351,7 @@ func TestStringSet(t *testing.T) {
 		wg.Add(1)
 		i := i
 		go func() {
-			if !x.Add(strconv.Itoa(i)) {
+			if !x.Store(strconv.Itoa(i)) {
 				panic("invalid")
 			}
 			wg.Done()
@@ -384,7 +384,7 @@ func TestAscendGreaterEqual(t *testing.T) {
 		if n >= 100 {
 			want = append(want, n)
 		}
-		m.Add(n)
+		m.Store(n)
 	}
 
 	i := 0
@@ -406,7 +406,7 @@ func TestAscendGreaterEqual(t *testing.T) {
 	})
 }
 
-func TestSkipSet_Get(t *testing.T) {
+func TestSkipSet_LoadOrStore(t *testing.T) {
 	type typ struct {
 		Key, value string
 	}
@@ -415,14 +415,20 @@ func TestSkipSet_Get(t *testing.T) {
 		return a.Key < b.Key
 	})
 
-	t0 := typ{Key: "1", value: "1"}
-	s.Add(t0)
+	v, loaded := s.LoadOrStore(typ{Key: "a"}, func() typ { return typ{Key: "a", value: "b"} })
+	if loaded {
+		t.Fatal("should not be loaded")
+	}
+	if v != (typ{Key: "a", value: "b"}) {
+		t.Fatal("should be equal")
+	}
 
-	ok, v := s.Get(typ{Key: "1"})
-	if !ok {
-		t.Fatalf("expecting element")
+	v, loaded = s.LoadOrStore(typ{Key: "a"}, func() typ { return typ{Key: "a", value: "b"} })
+	if !loaded {
+		t.Fatal("should be loaded")
 	}
-	if v != t0 {
-		t.Fatalf("element doesnt match")
+	if v != (typ{Key: "a", value: "b"}) {
+		t.Fatal("should be equal")
 	}
+
 }
