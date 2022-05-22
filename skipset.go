@@ -197,7 +197,7 @@ func (s *SkipSet[T]) Contains(value T) bool {
 }
 
 // Load returns the value in the set
-func (s *SkipSet[T]) Load(value T) (found bool, v T) {
+func (s *SkipSet[T]) Load(value T) (v T, found bool) {
 	x := s.header
 	for i := int(atomic.LoadInt64(&s.highestLevel)) - 1; i >= 0; i-- {
 		nex := x.atomicLoadNext(i)
@@ -210,13 +210,13 @@ func (s *SkipSet[T]) Load(value T) (found bool, v T) {
 		if nex != nil && s.equal(nex.value, value) {
 			linked := nex.flags.MGet(fullyLinked|marked, fullyLinked)
 			if linked {
-				return true, nex.value
+				return nex.value, true
 			}
 			break
 		}
 	}
 	var zero T
-	return false, zero
+	return zero, false
 }
 
 // Remove a node from the the set.
