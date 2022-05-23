@@ -431,4 +431,12 @@ func TestSkipSet_LoadOrStore(t *testing.T) {
 		t.Fatal("should be equal")
 	}
 
+	v, loaded = s.LoadOrStore(typ{Key: "a"}, typ{Key: "a", value: "b"})
+	if !loaded {
+		t.Fatal("should be loaded")
+	}
+	if v != (typ{Key: "a", value: "b"}) {
+		t.Fatal("should be equal")
+	}
+
 }

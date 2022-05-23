@@ -318,10 +318,23 @@ func (s *SkipSet[T]) AscendGreaterEqual(value T, f func(value T) bool) {
 	}
 }
 
+type ValueOrFuncValue[T any] interface {
+	any | func() T
+}
+
+func getValue[T any](v ValueOrFuncValue[T]) T {
+	switch any(v).(type) {
+	case func() T:
+		return v.(func() T)()
+	default:
+		return v.(T)
+	}
+}
+
 // LoadOrStore returns the existing value for the key if present.
 // Otherwise, it stores and returns the given value.
 // The loaded result is true if the value was loaded, false if stored.
-func (s SkipSet[T]) LoadOrStore(value T, newValue func() T) (actual T, loaded bool) {
+func (s SkipSet[T]) LoadOrStore(value T, newValue ValueOrFuncValue[T]) (actual T, loaded bool) {
 	level := s.randomlevel()
 	var preds, succs [maxLevel]*node[T]
 	for {
@@ -366,7 +379,7 @@ func (s SkipSet[T]) LoadOrStore(value T, newValue func() T) (actual T, loaded bo
 		}
 
 		// we are now at the safe-point, we can safely insert this node into the skip list.
-		value = newValue()
+		value = getValue(newValue)
 
 		nn := newNode(value, level)
 		for layer := 0; layer < level; layer++ {
