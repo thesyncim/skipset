@@ -117,9 +117,9 @@ func (s *SkipSet[T]) Store(value T) bool {
 		if lFound != -1 { // indicating the value is already in the skip-list
 			nodeFound := succs[lFound]
 			if !nodeFound.flags.Get(marked) {
-				nodeFound.mu.Lock()
-				nodeFound.value = value
-				nodeFound.mu.Unlock()
+				for !nodeFound.flags.Get(fullyLinked) {
+					// The node is not yet fully linked, just waits until it is.
+				}
 				return false
 			}
 			// If the node is marked, represents some other thread is in the process of deleting this node,
@@ -160,6 +160,61 @@ func (s *SkipSet[T]) Store(value T) bool {
 		unlockNode(preds, highestLocked)
 		atomic.AddInt64(&s.length, 1)
 		return true
+	}
+}
+
+// Set is similar to store but ensures given value is stored into the set.
+func (s *SkipSet[T]) Set(value T) {
+	level := s.randomlevel()
+	var preds, succs [maxLevel]*node[T]
+	for {
+		lFound := s.findNodeAdd(value, &preds, &succs)
+		if lFound != -1 { // indicating the value is already in the skip-list
+			nodeFound := succs[lFound]
+			if !nodeFound.flags.Get(marked) {
+				for !nodeFound.flags.Get(fullyLinked) {
+					// The node is not yet fully linked, just waits until it is.
+				}
+				s.Remove(value)
+			}
+			// If the node is marked, represents some other thread is in the process of deleting this node,
+			// we need to add this node in next loop.
+			continue
+		}
+		// Store this node into skip list.
+		var (
+			highestLocked        = -1 // the highest level being locked by this process
+			valid                = true
+			pred, succ, prevPred *node[T]
+		)
+		for layer := 0; valid && layer < level; layer++ {
+			pred = preds[layer]   // target node's previous node
+			succ = succs[layer]   // target node's next node
+			if pred != prevPred { // the node in this layer could be locked by previous loop
+				pred.mu.Lock()
+				highestLocked = layer
+				prevPred = pred
+			}
+			// valid check if there is another node has inserted into the skip list in this layer during this process.
+			// It is valid if:
+			// 1. The previous node and next node both are not marked.
+			// 2. The previous node's next node is succ in this layer.
+			valid = !pred.flags.Get(marked) && (succ == nil || !succ.flags.Get(marked)) && pred.loadNext(layer) == succ
+		}
+		if !valid {
+			unlockNode(preds, highestLocked)
+			continue
+		}
+
+		nn := newNode(value, level)
+		for layer := 0; layer < level; layer++ {
+			nn.storeNext(layer, succs[layer])
+			preds[layer].atomicStoreNext(layer, nn)
+		}
+		nn.flags.SetTrue(fullyLinked)
+		unlockNode(preds, highestLocked)
+		atomic.AddInt64(&s.length, 1)
+		return
 	}
 }
 

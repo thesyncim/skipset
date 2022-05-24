@@ -63,6 +63,30 @@ func benchAdd(b *testing.B, benchTasks []benchInt64Task) {
 	}
 }
 
+func BenchmarkSet(b *testing.B) {
+	s := New(func(a, b int) bool {
+		return a < b
+	})
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			s.Store(int(fastrandUint32n(randN)))
+		}
+	})
+}
+
+func BenchmarkStore(b *testing.B) {
+	var s sync.Map
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			s.Store(int(fastrandUint32n(randN)), 1)
+		}
+	})
+}
+
 func benchContains50Hits(b *testing.B, benchTasks []benchInt64Task) {
 	for _, v := range benchTasks {
 		b.Run("Contains50Hits/"+v.name, func(b *testing.B) {
