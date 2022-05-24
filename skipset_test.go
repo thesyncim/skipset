@@ -438,5 +438,36 @@ func TestSkipSet_LoadOrStore(t *testing.T) {
 	if v != (typ{Key: "a", value: "b"}) {
 		t.Fatal("should be equal")
 	}
+}
 
+func TestStoreSet(t *testing.T) {
+	type typ struct {
+		Key, value string
+	}
+
+	s := New(func(a, b typ) bool {
+		return a.Key < b.Key
+	})
+
+	added := s.Store(typ{Key: "a", value: "initial"})
+	if !added {
+		t.Fatal("should be added")
+	}
+
+	for i := 0; i < 100; i++ {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Parallel()
+			added = s.Store(typ{Key: "a", value: "updated"})
+			if added {
+				t.Fatal("shouldn't be added")
+			}
+			item, found := s.Load(typ{Key: "a"})
+			if !found {
+				t.Fatalf("should be found")
+			}
+			if item.value != "updated" {
+				t.Fatalf("item should be updated")
+			}
+		})
+	}
 }

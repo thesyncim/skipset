@@ -117,9 +117,9 @@ func (s *SkipSet[T]) Store(value T) bool {
 		if lFound != -1 { // indicating the value is already in the skip-list
 			nodeFound := succs[lFound]
 			if !nodeFound.flags.Get(marked) {
-				for !nodeFound.flags.Get(fullyLinked) {
-					// The node is not yet fully linked, just waits until it is.
-				}
+				nodeFound.mu.Lock()
+				nodeFound.value = value
+				nodeFound.mu.Unlock()
 				return false
 			}
 			// If the node is marked, represents some other thread is in the process of deleting this node,
