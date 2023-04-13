@@ -465,3 +465,100 @@ func TestStoreSet(t *testing.T) {
 		})
 	}
 }
+
+func TestMin(t *testing.T) {
+	t.Run("empty set", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		if s.Min() != 0 {
+			t.Fatal("invalid")
+		}
+	})
+	t.Run("monotonically increasing", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		for i := 0; i < 10; i++ {
+			s.Store(i)
+			mn := s.Min()
+			if mn != 0 {
+				t.Fatalf("invalid: expected=%d, got=%d", 0, mn)
+			}
+		}
+	})
+	t.Run("monotonically decreasing", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		for i := -1; i >= -10; i-- {
+			s.Store(i)
+			mn := s.Min()
+			if mn != i {
+				t.Fatalf("invalid: expected=%d, got=%d", i, mn)
+			}
+		}
+	})
+}
+
+func TestMax(t *testing.T) {
+	t.Run("empty set", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		mx := s.Max()
+		if mx != 0 {
+			t.Fatalf("invalid: expected=%d, got=%d", 0, mx)
+		}
+	})
+	t.Run("monotonically increasing", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		for i := 0; i < 10; i++ {
+			s.Store(i)
+			mx := s.Max()
+			if mx != i {
+				t.Fatalf("invalid: expected=%d, got=%d", i, mx)
+			}
+		}
+	})
+	t.Run("monotonically decreasing", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		for i := 10; i >= 0; i-- {
+			s.Store(i)
+			mx := s.Max()
+			if mx != 10 {
+				t.Fatalf("invalid: expected=%d, got=%d", 10, mx)
+			}
+		}
+	})
+	t.Run("concurrent with stores", func(t *testing.T) {
+		var wg sync.WaitGroup
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < 1000; i++ {
+				s.Store(i)
+			}
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			prevMax := 0
+			for i := 0; i < 1000; i++ {
+				max := s.Max()
+				if max < prevMax {
+					t.Fatalf("max is expected to be monotonic, got %d after %d", max, prevMax)
+				}
+				prevMax = max
+			}
+		}()
+		wg.Wait()
+	})
+}
