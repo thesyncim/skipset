@@ -465,3 +465,241 @@ func TestStoreSet(t *testing.T) {
 		})
 	}
 }
+
+func TestMin(t *testing.T) {
+	t.Run("empty set", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		if s.Min() != 0 {
+			t.Fatal("invalid")
+		}
+	})
+	t.Run("monotonically increasing", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		for i := 0; i < 10; i++ {
+			s.Store(i)
+			mn := s.Min()
+			if mn != 0 {
+				t.Fatalf("invalid: expected=%d, got=%d", 0, mn)
+			}
+		}
+	})
+	t.Run("monotonically decreasing", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		for i := -1; i >= -10; i-- {
+			s.Store(i)
+			mn := s.Min()
+			if mn != i {
+				t.Fatalf("invalid: expected=%d, got=%d", i, mn)
+			}
+		}
+	})
+	t.Run("concurrent with stores - non-increasing min", func(t *testing.T) {
+		var wg sync.WaitGroup
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		wg.Add(1)
+		s.Set(1001)
+		go func() {
+			defer wg.Done()
+			for i := 1000; i >= 0; i-- {
+				s.Set(i)
+			}
+		}()
+		prevMin := 1001
+		for i := 0; i < 1000; i++ {
+			min := s.Max()
+			if min > prevMin {
+				t.Fatalf("max is expected to be monotonic, got %d after %d", min, prevMin)
+			}
+			prevMin = min
+		}
+		wg.Wait()
+		expectOrder(t, s)
+	})
+	t.Run("concurrent with stores - min first and stores", func(t *testing.T) {
+		var wg sync.WaitGroup
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		s.Set(1)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 1; i <= 100; i++ {
+				s.Set(i)
+			}
+		}()
+		for i := 2; i < 1000; i++ {
+			min := s.Min()
+			if min != 1 {
+				t.Fatalf("min is expected to be 0, got %d", min)
+			}
+		}
+		wg.Wait()
+		expectOrder(t, s)
+	})
+	t.Run("concurrent with removes - min first removed", func(t *testing.T) {
+		var wg sync.WaitGroup
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		for i := 0; i <= 1000; i++ {
+			s.Set(i)
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i <= 1000; i++ {
+				s.Remove(i)
+			}
+		}()
+		prevMin := 0
+		for i := 0; i <= 1000; i++ {
+			min := s.Min()
+			if min < prevMin {
+				// monotonic because we are removing items in order
+				t.Fatalf("min is expected to be monotonic, got %d after %d", min, prevMin)
+			}
+		}
+		expectOrder(t, s)
+	})
+}
+
+func TestMax(t *testing.T) {
+	t.Run("empty set", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		mx := s.Max()
+		if mx != 0 {
+			t.Fatalf("invalid: expected=%d, got=%d", 0, mx)
+		}
+	})
+	t.Run("monotonically increasing", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		for i := 0; i < 10; i++ {
+			s.Store(i)
+			mx := s.Max()
+			if mx != i {
+				t.Fatalf("invalid: expected=%d, got=%d", i, mx)
+			}
+		}
+		expectOrder(t, s)
+	})
+	t.Run("monotonically decreasing", func(t *testing.T) {
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		for i := 10; i >= 0; i-- {
+			s.Store(i)
+			mx := s.Max()
+			if mx != 10 {
+				t.Fatalf("invalid: expected=%d, got=%d", 10, mx)
+			}
+		}
+		expectOrder(t, s)
+	})
+	t.Run("concurrent with stores - non-decreasing max", func(t *testing.T) {
+		var wg sync.WaitGroup
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < 1000; i++ {
+				s.Set(i)
+			}
+		}()
+		prevMax := 0
+		for i := 0; i < 1000; i++ {
+			max := s.Max()
+			if max < prevMax {
+				t.Fatalf("max is expected to be monotonic, got %d after %d", max, prevMax)
+			}
+			prevMax = max
+		}
+		wg.Wait()
+		expectOrder(t, s)
+	})
+	t.Run("concurrent with max first and stores", func(t *testing.T) {
+		var wg sync.WaitGroup
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		s.Set(1000)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 999; i >= 0; i-- {
+				s.Set(i)
+			}
+		}()
+		for i := 0; i < 10_000; i++ {
+			max := s.Max()
+			if max != 1000 {
+				t.Fatalf("max is expected to be 1000, got %d", max)
+			}
+		}
+		wg.Wait()
+		expectOrder(t, s)
+	})
+	t.Run("concurrent with removes - max first removed", func(t *testing.T) {
+		var wg sync.WaitGroup
+		s := New(func(a, b int) bool {
+			return a < b
+		})
+		for i := 0; i <= 1000; i++ {
+			s.Set(i)
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 1000; i >= 0; i-- {
+				s.Remove(i)
+			}
+		}()
+		prevMax := 1000
+		for i := 0; i <= 1000; i++ {
+			max := s.Max()
+			if max > prevMax {
+				// monotonic because we are removing items in order
+				t.Fatalf("max is expected to be monotonic, got %d after %d", max, prevMax)
+			}
+		}
+		expectOrder(t, s)
+	})
+}
+
+func expectOrder(t *testing.T, s *SkipSet[int]) {
+	t.Helper()
+	if s.Len() == 0 {
+		return
+	}
+	var prev int
+	index := 0
+	min, max := s.Min(), s.Max()
+	s.Range(func(v int) bool {
+		if index == 0 && v != min {
+			t.Fatalf("invalid (min should be first): expected=%d, got=%d", min, v)
+		}
+		if index > 0 && v < prev {
+			t.Fatalf("invalid (monotonicity violation): expected=%d, got=%d", prev, v)
+		}
+		prev = v
+		index++
+		return true
+	})
+	if prev != max {
+		t.Fatalf("invalid max (max should be last): expected=%d, got=%d", max, prev)
+	}
+}

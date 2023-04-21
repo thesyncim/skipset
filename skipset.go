@@ -353,7 +353,7 @@ func (s *SkipSet[T]) Range(f func(value T) bool) {
 	}
 }
 
-// AscendGreaterEqual calls f sequentially for each value present in the the set greater than or equal to value.
+// AscendGreaterEqual calls f sequentially for each value present in the set greater than or equal to value.
 // If f returns false, range stops the iteration.
 func (s *SkipSet[T]) AscendGreaterEqual(value T, f func(value T) bool) {
 	var preds, succs [maxLevel]*node[T]
@@ -371,6 +371,44 @@ func (s *SkipSet[T]) AscendGreaterEqual(value T, f func(value T) bool) {
 		}
 		x = x.atomicLoadNext(0)
 	}
+}
+
+// Min returns the minimum value in the set. If it is empty
+// then the zero value is returned.
+func (s *SkipSet[T]) Min() T {
+	x := s.header.atomicLoadNext(0)
+	for x != nil {
+		if x.flags.MGet(fullyLinked|marked, fullyLinked) {
+			return x.value
+		}
+		x = x.atomicLoadNext(0)
+	}
+	var zero T
+	return zero
+}
+
+// Max returns the maximum value in the set. If it is empty
+// then the zero value is returned.
+func (s *SkipSet[T]) Max() T {
+	x := s.header
+	var mx *node[T]
+	for i := int(atomic.LoadInt64(&s.highestLevel) - 1); i >= 0; i-- {
+		for x != nil {
+			nx := x.atomicLoadNext(i)
+			if !x.flags.MGet(fullyLinked|marked, fullyLinked) {
+				x = nx
+				continue
+			}
+			mx = x
+			x = nx
+		}
+		x = mx
+	}
+	if mx != nil {
+		return mx.value
+	}
+	var zero T
+	return zero
 }
 
 type ValueOrFuncValue[T any] interface {
