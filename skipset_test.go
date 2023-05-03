@@ -419,6 +419,9 @@ func TestSkipSet_LoadOrStore(t *testing.T) {
 	if loaded {
 		t.Fatal("should not be loaded")
 	}
+	if s.Len() != 1 {
+		t.Fatalf("should be 1, got %d", s.Len())
+	}
 	if v != (typ{Key: "a", value: "b"}) {
 		t.Fatal("should be equal")
 	}
@@ -427,6 +430,9 @@ func TestSkipSet_LoadOrStore(t *testing.T) {
 	if !loaded {
 		t.Fatal("should be loaded")
 	}
+	if s.Len() != 1 {
+		t.Fatalf("should be 1, got %d", s.Len())
+	}
 	if v != (typ{Key: "a", value: "b"}) {
 		t.Fatal("should be equal")
 	}
@@ -434,6 +440,9 @@ func TestSkipSet_LoadOrStore(t *testing.T) {
 	v, loaded = s.LoadOrStore(typ{Key: "a"}, typ{Key: "a", value: "b"})
 	if !loaded {
 		t.Fatal("should be loaded")
+	}
+	if s.Len() != 1 {
+		t.Fatalf("should be 1, got %d", s.Len())
 	}
 	if v != (typ{Key: "a", value: "b"}) {
 		t.Fatal("should be equal")
