@@ -427,7 +427,7 @@ func getValue[T any](v ValueOrFuncValue[T]) T {
 // LoadOrStore returns the existing value for the key if present.
 // Otherwise, it stores and returns the given value.
 // The loaded result is true if the value was loaded, false if stored.
-func (s SkipSet[T]) LoadOrStore(value T, newValue ValueOrFuncValue[T]) (actual T, loaded bool) {
+func (s *SkipSet[T]) LoadOrStore(value T, newValue ValueOrFuncValue[T]) (actual T, loaded bool) {
 	level := s.randomlevel()
 	var preds, succs [maxLevel]*node[T]
 	for {
