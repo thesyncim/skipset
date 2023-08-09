@@ -472,7 +472,7 @@ func (s *SkipSet[T]) LoadOrStore(value T, newValue ValueOrFuncValue[T]) (actual 
 		}
 
 		// we are now at the safe-point, we can safely insert this node into the skip list.
-		value = getValue(newValue)
+		value = getValue[T](newValue)
 
 		nn := newNode(value, level)
 		for layer := 0; layer < level; layer++ {
